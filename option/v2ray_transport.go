@@ -15,6 +15,7 @@ type _V2RayTransportOptions struct {
 	QUICOptions        V2RayQUICOptions        `json:"-"`
 	GRPCOptions        V2RayGRPCOptions        `json:"-"`
 	HTTPUpgradeOptions V2RayHTTPUpgradeOptions `json:"-"`
+	XHTTPOptions       V2RayXHTTPOptions       `json:"-"`
 }
 
 type V2RayTransportOptions _V2RayTransportOptions
@@ -32,6 +33,8 @@ func (o V2RayTransportOptions) MarshalJSON() ([]byte, error) {
 		v = o.GRPCOptions
 	case C.V2RayTransportTypeHTTPUpgrade:
 		v = o.HTTPUpgradeOptions
+	case C.V2RayTransportTypeXHTTP:
+		v = o.XHTTPOptions
 	case "":
 		return nil, E.New("missing transport type")
 	default:
@@ -57,6 +60,8 @@ func (o *V2RayTransportOptions) UnmarshalJSON(bytes []byte) error {
 		v = &o.GRPCOptions
 	case C.V2RayTransportTypeHTTPUpgrade:
 		v = &o.HTTPUpgradeOptions
+	case C.V2RayTransportTypeXHTTP:
+		v = &o.XHTTPOptions
 	default:
 		return E.New("unknown transport type: " + o.Type)
 	}
@@ -97,4 +102,30 @@ type V2RayHTTPUpgradeOptions struct {
 	Host    string               `json:"host,omitempty"`
 	Path    string               `json:"path,omitempty"`
 	Headers badoption.HTTPHeader `json:"headers,omitempty"`
+}
+
+type V2RayXHTTPOptions struct {
+	Host        string                  `json:"host,omitempty"`
+	Path        string                  `json:"path,omitempty"`
+	Headers     badoption.HTTPHeader    `json:"headers,omitempty"`
+	Mode        string                  `json:"mode,omitempty"`
+	Extra       *V2RayXHTTPExtraOptions `json:"extra,omitempty"`
+	IdleTimeout badoption.Duration      `json:"idle_timeout,omitempty"`
+	PingTimeout badoption.Duration      `json:"ping_timeout,omitempty"`
+}
+
+type V2RayXHTTPExtraOptions struct {
+	ScMaxEachPostBytes   string                 `json:"sc_max_each_post_bytes,omitempty"`
+	ScMinPostsIntervalMs string                 `json:"sc_min_posts_interval_ms,omitempty"`
+	ScMaxBufferedPosts   int                    `json:"sc_max_buffered_posts,omitempty"`
+	NoSSEHeader          bool                   `json:"no_sse_header,omitempty"`
+	Xmux                 *V2RayXHTTPXmuxOptions `json:"xmux,omitempty"`
+}
+
+type V2RayXHTTPXmuxOptions struct {
+	MaxConcurrency   string `json:"max_concurrency,omitempty"`
+	MaxConnections   string `json:"max_connections,omitempty"`
+	CMaxReuseTimes   string `json:"c_max_reuse_times,omitempty"`
+	HMaxRequestTimes string `json:"h_max_request_times,omitempty"`
+	HMaxReusableSecs string `json:"h_max_reusable_secs,omitempty"`
 }
