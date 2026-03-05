@@ -214,7 +214,7 @@ jobs:
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-          LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
+          #LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
       - name: Prepare upload
         run: |-
           mkdir -p dist
@@ -228,8 +228,8 @@ jobs:
   release:
     name: Publish Nightly Release
     runs-on: ubuntu-latest
-    # Only run on push (not on PRs), and only after all builds succeed
-    if: github.event_name == 'push'
+    # Run on push even if some build jobs failed (but not if workflow was cancelled)
+    if: always() && !cancelled() && github.event_name == 'push' && needs.calculate_version.result == 'success'
     needs:
       - calculate_version
       - build_linux
@@ -241,8 +241,20 @@ jobs:
         with:
           path: release-dist
           merge-multiple: true
-      - name: List artifacts
-        run: ls -lh release-dist/
+        # If no artifacts at all, this will fail; continue-on-error handles partial success
+        continue-on-error: true
+      - name: Check release-dist exists
+        run: |
+          if [ ! -d release-dist ] || [ -z "$(ls -A release-dist)" ]; then
+            echo "No artifacts found, skipping release."
+            exit 1
+          fi
+          ls -lh release-dist/
+      - name: Build status summary
+        run: |
+          echo "Linux build:   ${{ needs.build_linux.result }}"
+          echo "Windows build: ${{ needs.build_windows.result }}"
+          echo "Android build: ${{ needs.build_android.result }}"
       - name: Delete existing nightly tag and release
         uses: dev-drprasad/delete-tag-and-release@v1.1
         with:
@@ -261,14 +273,15 @@ jobs:
             **Version:** `${{ needs.calculate_version.outputs.version }}`
             **Commit:** [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
             **Branch:** `${{ github.ref_name }}`
-            **Build time:** ${{ github.run_id }}
 
             > ⚠️ This is an unstable nightly build and may contain bugs. Use at your own risk.
 
-            ### Included platforms
-            - 🐧 Linux: `amd64`, `arm64`
-            - 🪟 Windows: `amd64`
-            - 🤖 Android (SFA): `arm64`
+            ### Build status
+            | Platform | Status |
+            |----------|--------|
+            | 🐧 Linux (`amd64`, `arm64`) | ${{ needs.build_linux.result == 'success' && '✅ Success' || '❌ Failed' }} |
+            | 🪟 Windows (`amd64`) | ${{ needs.build_windows.result == 'success' && '✅ Success' || '❌ Failed' }} |
+            | 🤖 Android SFA (`arm64`) | ${{ needs.build_android.result == 'success' && '✅ Success' || '❌ Failed' }} |
           prerelease: true
           make_latest: false
           files: release-dist/**
