@@ -224,3 +224,53 @@ jobs:
         with:
           name: nightly-android-apk
           path: "dist"
+
+  release:
+    name: Publish Nightly Release
+    runs-on: ubuntu-latest
+    # Only run on push (not on PRs), and only after all builds succeed
+    if: github.event_name == 'push'
+    needs:
+      - calculate_version
+      - build_linux
+      - build_windows
+      - build_android
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-dist
+          merge-multiple: true
+      - name: List artifacts
+        run: ls -lh release-dist/
+      - name: Delete existing nightly tag and release
+        uses: dev-drprasad/delete-tag-and-release@v1.1
+        with:
+          tag_name: nightly
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          delete_release: true
+        continue-on-error: true
+      - name: Create nightly release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: "Nightly Build (${{ needs.calculate_version.outputs.version }})"
+          body: |
+            🌙 **Nightly Build** — automatically generated from the latest commit on `${{ github.ref_name }}`.
+
+            **Version:** `${{ needs.calculate_version.outputs.version }}`
+            **Commit:** [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            **Branch:** `${{ github.ref_name }}`
+            **Build time:** ${{ github.run_id }}
+
+            > ⚠️ This is an unstable nightly build and may contain bugs. Use at your own risk.
+
+            ### Included platforms
+            - 🐧 Linux: `amd64`, `arm64`
+            - 🪟 Windows: `amd64`
+            - 🤖 Android (SFA): `arm64`
+          prerelease: true
+          make_latest: false
+          files: release-dist/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
