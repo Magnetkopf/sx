@@ -2,14 +2,17 @@ package build_shared
 
 import (
 	"github.com/sagernet/sing-box/common/badversion"
-	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/shell"
 )
 
 func ReadTag() (string, error) {
 	currentTag, err := shell.Exec("git", "describe", "--tags").ReadOutput()
 	if err != nil {
-		return currentTag, err
+		shortCommit, err2 := shell.Exec("git", "rev-parse", "--short", "HEAD").ReadOutput()
+		if err2 != nil {
+			return "", err
+		}
+		return "0.0.0-dev-" + shortCommit, nil
 	}
 	currentTagRev, _ := shell.Exec("git", "describe", "--tags", "--abbrev=0").ReadOutput()
 	if currentTagRev == currentTag {
@@ -21,13 +24,22 @@ func ReadTag() (string, error) {
 }
 
 func ReadTagVersionRev() (badversion.Version, error) {
-	currentTagRev := common.Must1(shell.Exec("git", "describe", "--tags", "--abbrev=0").ReadOutput())
+	currentTagRev, err := shell.Exec("git", "describe", "--tags", "--abbrev=0").ReadOutput()
+	if err != nil {
+		return badversion.Version{PreReleaseIdentifier: "dev"}, nil
+	}
 	return badversion.Parse(currentTagRev[1:]), nil
 }
 
 func ReadTagVersion() (badversion.Version, error) {
-	currentTag := common.Must1(shell.Exec("git", "describe", "--tags").ReadOutput())
-	currentTagRev := common.Must1(shell.Exec("git", "describe", "--tags", "--abbrev=0").ReadOutput())
+	currentTag, err := shell.Exec("git", "describe", "--tags").ReadOutput()
+	if err != nil {
+		return badversion.Version{PreReleaseIdentifier: "dev"}, nil
+	}
+	currentTagRev, err := shell.Exec("git", "describe", "--tags", "--abbrev=0").ReadOutput()
+	if err != nil {
+		return badversion.Version{PreReleaseIdentifier: "dev"}, nil
+	}
 	version := badversion.Parse(currentTagRev[1:])
 	if currentTagRev != currentTag {
 		if version.PreReleaseIdentifier == "" {

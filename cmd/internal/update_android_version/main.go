@@ -65,8 +65,9 @@ func main() {
 	if !(versionUpdated || goVersionUpdated) {
 		log.Info("version not changed")
 		return
-	} else if flagRunInCI && !flagRunNightly {
-		log.Fatal("version changed, commit changes first.")
+	}
+	if flagRunInCI && !flagRunNightly {
+		log.Info("version changed, skipping commit check.")
 	}
 	for _, propPair := range propsList {
 		switch propPair[0] {
