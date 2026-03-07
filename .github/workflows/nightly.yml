@@ -187,42 +187,17 @@ jobs:
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-      - name: Checkout main branch
-        if: github.ref == 'refs/heads/main-next'
-        run: |-
-          cd clients/android
-          git checkout main
-      - name: Checkout dev branch
-        if: github.ref == 'refs/heads/dev-next'
-        run: |-
-          cd clients/android
-          git checkout dev
-      - name: Gradle cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.gradle
-          key: gradle-${{ hashFiles('**/*.gradle') }}
-      - name: Update nightly version
-        run: |-
-          go run -v ./cmd/internal/update_android_version --ci --nightly
-      - name: Build
-        run: |-
-          mkdir clients/android/app/libs || true
-          cp *.aar clients/android/app/libs || true
-          cd clients/android
-          ./gradlew :app:assembleOtherRelease
-        env:
-          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-          #LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
       - name: Prepare upload
         run: |-
           mkdir -p dist
-          cp clients/android/app/build/outputs/apk/other/release/*.apk dist
+          cp *.aar dist/ || true
+          # Extract .so files for convenience if present
+          unzip -j libbox.aar "jni/arm64-v8a/libbox.so" -d dist/ || true
+          [ -f dist/libbox.so ] && mv dist/libbox.so dist/libbox-arm64-v8a.so || true
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nightly-android-apk
+          name: nightly-android-libbox
           path: "dist"
 
   release:
@@ -281,7 +256,7 @@ jobs:
             |----------|--------|
             | 🐧 Linux (`amd64`, `arm64`) | ${{ needs.build_linux.result == 'success' && '✅ Success' || '❌ Failed' }} |
             | 🪟 Windows (`amd64`) | ${{ needs.build_windows.result == 'success' && '✅ Success' || '❌ Failed' }} |
-            | 🤖 Android SFA (`arm64`) | ${{ needs.build_android.result == 'success' && '✅ Success' || '❌ Failed' }} |
+            | 🤖 Android libbox (`arm64`) | ${{ needs.build_android.result == 'success' && '✅ Success' || '❌ Failed' }} |
           prerelease: true
           make_latest: false
           files: release-dist/**
