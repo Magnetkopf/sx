@@ -626,12 +626,14 @@ jobs:
         if: github.ref == 'refs/heads/main-next' && github.event_name != 'workflow_dispatch'
         run: |-
           cd clients/android
-          git checkout main
+          git fetch origin main
+          git checkout -B main origin/main
       - name: Checkout dev branch
         if: github.ref == 'refs/heads/dev-next'
         run: |-
           cd clients/android
-          git checkout dev
+          git fetch origin dev
+          git checkout -B dev origin/dev
       - name: Gradle cache
         uses: actions/cache@v4
         with:
@@ -716,12 +718,14 @@ jobs:
         if: github.ref == 'refs/heads/main-next' && github.event_name != 'workflow_dispatch'
         run: |-
           cd clients/android
-          git checkout main
+          git fetch origin main
+          git checkout -B main origin/main
       - name: Checkout dev branch
         if: github.ref == 'refs/heads/dev-next'
         run: |-
           cd clients/android
-          git checkout dev
+          git fetch origin dev
+          git checkout -B dev origin/dev
       - name: Gradle cache
         uses: actions/cache@v4
         with:
@@ -800,12 +804,14 @@ jobs:
         if: matrix.if && github.ref == 'refs/heads/main-next' && github.event_name != 'workflow_dispatch'
         run: |-
           cd clients/apple
-          git checkout main
+          git fetch origin main
+          git checkout -B main origin/main
       - name: Checkout dev branch
         if: matrix.if && github.ref == 'refs/heads/dev-next'
         run: |-
           cd clients/apple
-          git checkout dev
+          git fetch origin dev
+          git checkout -B dev origin/dev
       - name: Setup certificates
         if: matrix.if
         run: |-

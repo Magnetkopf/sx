@@ -191,12 +191,14 @@ jobs:
         if: github.ref == 'refs/heads/main-next'
         run: |-
           cd clients/android
-          git checkout main
+          git fetch origin main
+          git checkout -B main origin/main
       - name: Checkout dev branch
         if: github.ref == 'refs/heads/dev-next'
         run: |-
           cd clients/android
-          git checkout dev
+          git fetch origin dev
+          git checkout -B dev origin/dev
       - name: Gradle cache
         uses: actions/cache@v4
         with:
